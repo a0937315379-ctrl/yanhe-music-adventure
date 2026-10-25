@@ -1,7 +1,7 @@
 import {firebaseConfig, ROOM, isConfigured} from './firebase-config.js';
 const label=document.getElementById('syncStatus');
 const status=x=>{if(label)label.textContent=x};
-let last=null,uid=null,db=null,api=null,chain=Promise.resolve();
+let last=null,uid=null,db=null,api=null,chain=Promise.resolve(),stopKeys=null;
 const key='yanhe-adventure-v4';
 function current(){let s={};try{s=JSON.parse(localStorage.getItem(key)||'{}')}catch{}return {...s,nickname:document.getElementById('nickname')?.value||'',group:document.getElementById('group')?.value||'1'};}
 function payload(x){return {
@@ -23,10 +23,16 @@ function sync(x){last=x;if(!uid||!db||!api){status('🟡 冒險紀錄暫存在�
 window.addEventListener('yanhe:save',e=>sync(e.detail));
 if(!isConfigured){status('⚪ 尚未填寫 firebase-config.js；目前維持單機紀錄');}
 else try {
- const [{initializeApp},{getAuth,signInAnonymously,onAuthStateChanged},{getDatabase,ref,set,serverTimestamp}]=await Promise.all([
+ const [{initializeApp},{getAuth,signInAnonymously,onAuthStateChanged},{getDatabase,ref,set,serverTimestamp,onValue,runTransaction}]=await Promise.all([
  import('https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js'),
  import('https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js'),
  import('https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js')]);
- api={ref,set,serverTimestamp};const app=initializeApp(firebaseConfig,'yanhe-adventure-student');db=getDatabase(app);const auth=getAuth(app);
- onAuthStateChanged(auth,u=>{if(u){uid=u.uid;sync(last||current());}else signInAnonymously(auth).catch(e=>status('🔴 學生登入失敗：'+e.code));});
+ api={ref,set,serverTimestamp,onValue,runTransaction};const app=initializeApp(firebaseConfig,'yanhe-adventure-student');db=getDatabase(app);const auth=getAuth(app);
+ onAuthStateChanged(auth,u=>{if(u){uid=u.uid;window.yanheMyUID=uid;sync(last||current());subscribeKeys();}else signInAnonymously(auth).catch(e=>status('🔴 學生登入失敗：'+e.code));});
 }catch(e){console.error(e);status('🔴 Firebase 模組載入失敗，可先單機試玩')}
+
+function subscribeKeys(){if(!db||!uid||!api)return;if(stopKeys)stopKeys();const group=document.getElementById('group')?.value||'1';stopKeys=api.onValue(api.ref(db,`adventure/${ROOM}/groupKeys/${group}`),snapshot=>{const obj=snapshot.val()||{};const keys={};for(const role of ['tone','tempo','feeling','director'])if(obj[role])keys[role]=obj[role];const ids=Object.values(keys).map(k=>k.uid);const valid=ids.length===4&&new Set(ids).size===4;window.dispatchEvent(new CustomEvent('yanhe:castle-update',{detail:{keys,final:valid?obj.final||null:null}}));},err=>status('🔴 小組鑰匙讀取失敗：'+err.code));}
+window.addEventListener('yanhe:group-change',subscribeKeys);
+window.addEventListener('yanhe:castle-key',async e=>{if(!uid||!api||!db){window.dispatchEvent(new CustomEvent('yanhe:castle-feedback',{detail:'⚠️ 尚未登入Firebase，稍後再試。'}));return}const {group,role,song,trait,feeling}=e.detail;const validRoles=['tone','tempo','feeling','director'];if(!validRoles.includes(role)||!['A','B','C'].includes(song)||!trait||!feeling)return;
+try{const target=api.ref(db,`adventure/${ROOM}/groupKeys/${group}/${role}`);const res=await api.runTransaction(target,current=>{if(current&&current.uid!==uid)return;return {uid,song,trait,feeling};},{applyLocally:false});window.dispatchEvent(new CustomEvent('yanhe:castle-feedback',{detail:res.committed?'✅ 鑰匙已放進小組寶箱！':'⚠️ 這個角色已有組員選擇，請選另一把鑰匙。'}));}catch(err){window.dispatchEvent(new CustomEvent('yanhe:castle-feedback',{detail:'⚠️ 上傳失敗：'+(err.code||err.message)}));}});
+window.addEventListener('yanhe:castle-final',async e=>{if(!uid||!api||!db)return;try{await api.set(api.ref(db,`adventure/${ROOM}/groupKeys/${e.detail.group}/final`),{uid,song:e.detail.song});}catch(err){window.dispatchEvent(new CustomEvent('yanhe:castle-feedback',{detail:'⚠️ 提交失敗：'+(err.code||err.message)}));}});
