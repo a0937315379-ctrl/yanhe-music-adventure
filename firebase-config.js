@@ -1,12 +1,13 @@
-// 請填入「原本音樂情緒 LIVE」的 Firebase 網頁設定 (不是私人金鑰)。
-// 在 Firebase 控制台：專案設定 → 你的應用程式 → SDK設定與配置。
+
 export const firebaseConfig = {
-  apiKey: "PASTE_API_KEY",
-  authDomain: "PASTE_AUTH_DOMAIN",
-  databaseURL: "PASTE_DATABASE_URL",
-  projectId: "PASTE_PROJECT_ID",
-  appId: "PASTE_APP_ID"
+  apiKey: "AIzaSyDB42kj4j_HOZvgPGhah5DjDIZOc97Tnpo",
+  authDomain: "yanhe-music-live115.firebaseapp.com",
+  databaseURL: "https://yanhe-music-live115-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "yanhe-music-live115",
+  appId: "1:25989090816:web:741b59cae2fb656aacd2e5"
 };
+
 export const ROOM = "YANHE01";
 export const TEACHER_UID = "YF43N5th6rdB1eifbGbrHU58yKp2";
-export const isConfigured = !Object.values(firebaseConfig).some(v => String(v).startsWith("PASTE_"));
+
+export const isConfigured = true;
