@@ -1,5 +1,6 @@
 import {firebaseConfig, ROOM, TEACHER_UID, isConfigured} from './firebase-config.js';
 const $=id=>document.getElementById(id), say=s=>$('msg').textContent=s;
+const roles={tone:'音色偵探',tempo:'速度偵探',feeling:'情緒偵探',director:'廣告導演'};
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 if(!isConfigured){say('尚未填寫 firebase-config.js，請先完成Firebase設定。');$('login').disabled=true;}
 else {
@@ -15,7 +16,7 @@ function render(){const all=Object.values(records).filter(v=>v&&typeof v==='obje
 $('stats').innerHTML=['💗 情緒森林','🎼 節奏山谷','🏰 配樂城堡','🏆 離場挑戰'].map((name,i)=>{let count=all.filter(v=>Array.isArray(v.done)&&v.done[i]).length;return `<p><b>${name}</b>：${count} / ${n}　<span class="pill">${n?Math.round(count/n*100):0}%</span></p>`}).join('');
 const exits=[0,1,2].map(i=>({count:all.filter(v=>v.exit?.[i]).length,correct:all.filter(v=>v.exit?.[i]?.correct).length}));
 $('learning').innerHTML=`<p>第二關完成全部3題：<b>${all.filter(v=>v.knowledgeCorrect===3).length}/${n}</b></p><p>第二關累計答錯重試：<b>${all.reduce((s,v)=>s+(v.knowledgeRetries||[]).reduce((a,b)=>a+(Number(b)||0),0),0)}</b>次</p>`+exits.map((x,i)=>`<p>離場券第${i+1}題：已答 ${x.count} 人，答對 ${x.correct} 人，正確率 ${x.count?Math.round(x.correct/x.count*100):0}%</p>`).join('');
-let groupLines=[];for(let i=1;i<=8;i++){let members=all.filter(v=>v.group===String(i)),votes={};members.forEach(m=>{if(m.song)votes[m.song]=(votes[m.song]||0)+1});let sample=members.filter(m=>m.groupAgreed&&m.song).map(m=>`${esc(m.nickname||'未填代號')}: ${esc(m.song)}版 / ${esc((m.traits||[]).join('、'))} / ${esc(m.feeling)}`).slice(0,5);groupLines.push(`<tr><td>第${i}組</td><td>${members.length}人</td><td>${esc(Object.entries(votes).map(([k,v])=>k+':'+v).join('、')||'—')}</td><td>${sample.join('<div style="margin:6px 0"></div>')||'未提交共識'}</td></tr>`)}
+let groupLines=[];for(let i=1;i<=8;i++){let members=all.filter(v=>v.group===String(i)),votes={};members.forEach(m=>{if(m.song)votes[m.song]=(votes[m.song]||0)+1});let sample=members.filter(m=>m.groupAgreed&&m.song).map(m=>`${esc(m.nickname||'未填代號')}（${esc(roles[m.role]||'未選角色')}）：${esc(m.song)}版 / ${esc((m.traits||[]).join('、'))} / ${esc(m.feeling)}`).slice(0,5);groupLines.push(`<tr><td>第${i}組</td><td>${members.length}人</td><td>${esc(Object.entries(votes).map(([k,v])=>k+':'+v).join('、')||'—')}</td><td>${sample.join('<div style="margin:6px 0"></div>')||'未提交共識'}</td></tr>`)}
 $('groups').innerHTML='<p class="mini muted">目前為「每位組員各自確認小組提案」，不等於已具備組長統一鎖定的跨裝置共識機制。</p><table><tr><th>組別</th><th>人數</th><th>BGM選擇</th><th>已勾選共識的提案</th></tr>'+groupLines.join('')+'</table>';
 const filter=$('filter').value,visible=all.filter(v=>filter==='all'||v.group===filter);$('studentRows').innerHTML=visible.map(v=>`<tr><td>${esc(v.nickname||'未填')}</td><td>${esc(v.group||'—')}</td><td>${(v.done||[]).filter(Boolean).length}/4</td><td>${Number(v.knowledgeCorrect)||0}/3</td><td>${(v.knowledgeRetries||[]).reduce((a,b)=>a+(Number(b)||0),0)}</td><td>${esc(v.song||'—')}</td><td>${(v.exit||[]).filter(q=>q?.correct).length}/${(v.exit||[]).length}</td><td>${v.updatedAt?'已同步':'待同步'}</td></tr>`).join('')||'<tr><td colspan="8">尚無學生紀錄</td></tr>';
 }

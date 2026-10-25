@@ -11,7 +11,7 @@ function payload(x){return {
  emotion:String(x.emotion||'').slice(0,12),
  knowledgeCorrect:Array.isArray(x.answers)?Math.min(3,x.answers.length):0,
  knowledgeRetries:Array.isArray(x.tries)?x.tries.slice(0,3).map(v=>Math.max(0,Number(v)||0)):[0,0,0],
- song:String(x.song||'').slice(0,1),traits:Array.isArray(x.traits)?x.traits.slice(0,6).map(v=>String(v).slice(0,16)):[],
+ role:String(x.role||'').slice(0,16),song:String(x.song||'').slice(0,1),traits:Array.isArray(x.traits)?x.traits.slice(0,6).map(v=>String(v).slice(0,16)):[],
  feeling:String(x.feeling||'').slice(0,12),groupAgreed:!!x.groupOK,
  exit:Array.isArray(x.exit)?x.exit.slice(0,3).map(a=>({answer:Number(a.answer)||0,correct:!!a.correct})):[],
  stage:Math.max(0,Math.min(3,Number(x.level)||0)),updatedAt:api.serverTimestamp()
